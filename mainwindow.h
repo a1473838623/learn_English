@@ -15,8 +15,13 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    bool eventFilter(QObject *,QEvent *);
+
+signals:
+    void windowSizeChanged();
 
 private:
     Ui::MainWindow *ui;
+
 };
 #endif // MAINWINDOW_H

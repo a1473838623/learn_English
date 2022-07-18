@@ -7,11 +7,14 @@
 #include <QFileDialog>
 #include <QDebug>
 #include <QToolBar>
+#include <math.h>
 //添加数据库头文件
 #include <QSqlQuery>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlTableModel>
+#include <QPushButton>
+#include <QList>
 using namespace std;
 
 #include "xlsxdocument.h"
@@ -229,9 +232,56 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    QGridLayout *pLayout = new QGridLayout();//网格布局
+    pLayout->setColumnStretch(this->width()/200, 1);
+    pLayout->setSpacing(14);
+    QList<QPushButton*> *pBtnList = new QList<QPushButton*>();
+    int buttonNum = 100;
+    for(int i = 0; i < buttonNum; i++)
+    {
+        QPushButton *pBtn = new QPushButton();
+        pBtnList->append(pBtn);
+        pBtn->setText(QString("按钮%1").arg(i));
+        pBtn->setFixedSize(QSize(100,30));
+        pLayout->addWidget(pBtn);//把按钮添加到布局控件中
+    }
+    QAction *adjustButtonToolBarAction = toolBar->addAction("调整Tab2布局");
+    connect(adjustButtonToolBarAction,&QAction::triggered,this,[=](){
+        for(int i = 0;i < pBtnList->size();i++)
+        {
+            pLayout->removeWidget(pBtnList->at(i));
+            qDebug() << i << "removed";
+        }
+        pLayout->setColumnStretch(this->width()/125, 1);
+        for(int i = 0;i < pBtnList->size();i++)
+        {
+            int btn_max_col = this->width()/125;
+            qDebug() << btn_max_col;
+            pLayout->addWidget(pBtnList->at(i),i/btn_max_col,i%btn_max_col);
+            qDebug() << i << "added";
+        }
+    });
+
+    ui->scrollArea->widget()->setLayout(pLayout);//把布局放置到QScrollArea的内部QWidget中
+    ui->centralwidget->installEventFilter(this);
+
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+
+bool MainWindow::eventFilter(QObject *obj,QEvent *ev)
+{
+    if(obj == ui->centralwidget)
+    {
+        if(ev->type()==QEvent::Resize)
+        {
+            emit windowSizeChanged();
+            return QWidget::eventFilter(obj,ev);
+        }
+    }
+    return QWidget::eventFilter(obj,ev);
 }
