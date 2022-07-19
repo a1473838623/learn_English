@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QSqlDatabase>
+#include <table1config.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -15,13 +17,19 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    //事件过滤器
     bool eventFilter(QObject *,QEvent *);
+    //连接数据库
+    QSqlDatabase connect_database();
+    //从excel读取数据
+    QVector< QVector<QString> > read_data_from_xlsx(QString filePath);
 
 signals:
     void windowSizeChanged();
 
 private:
     Ui::MainWindow *ui;
+    Table1Config *table1config;
 
 };
 #endif // MAINWINDOW_H
