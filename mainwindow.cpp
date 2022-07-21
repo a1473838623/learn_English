@@ -52,8 +52,6 @@ MainWindow::MainWindow(QWidget *parent)
     });
     timer1->start(100);
 
-
-
     QToolBar *toolBar = new QToolBar(this);
     //设置toolBar初始位置位于左侧
     this->addToolBar(Qt::LeftToolBarArea,toolBar);
@@ -64,6 +62,8 @@ MainWindow::MainWindow(QWidget *parent)
         this->addToolBar(Qt::LeftToolBarArea,toolBar);
     });
 
+    ui->label->setText("已导入的单词库");
+
     QSqlDatabase database = this->connect_database();
 
     //初始化数据库
@@ -71,39 +71,89 @@ MainWindow::MainWindow(QWidget *parent)
     QString str_sql = "";
     str_sql = "create table if not exists words(id int primary key, name text, english_voice text, usa_voice text, meaning text, rememberType text, tips text)";
     sqlQuery.exec(str_sql);
-    str_sql = "create table if not exists config(id int primary key, cycle_period text, daily_words_number text)";
+    str_sql = "create table if not exists config(id int primary key, cycle_period text, daily_words_number text , table1_config_ifSaveAfterChanging)";
     sqlQuery.exec(str_sql);
-    str_sql = "insert into config values(1,'14 days','50')";
+    str_sql = "insert into config values(1,'14','50','true')";
     sqlQuery.exec(str_sql);
     str_sql = "select * from config where id = 1";
     sqlQuery.exec(str_sql);
-    QString cycle_period;
-    QString daily_words_number;
+    int cycle_period = 14;
+    int daily_words_number = 50;
+    QString table1_config_ifSaveAfterChanging;
     while(sqlQuery.next())
     {
-        cycle_period = sqlQuery.value(1).toString();
-        daily_words_number = sqlQuery.value(2).toString();
+        cycle_period = sqlQuery.value(1).toInt();
+        daily_words_number = sqlQuery.value(2).toInt();
+        table1_config_ifSaveAfterChanging = sqlQuery.value(3).toString();
+    }
+
+    //获取需要纳入当天记忆的单词id列表
+    QList<int> *word_index_list = new QList<int>();
+
+    QDateTime cdt =QDateTime::currentDateTime();
+    QString current_date =cdt.toString("yyyy.MM.dd");
+    str_sql = "select count(*) from words where tips = '"+ current_date + "'";
+    sqlQuery.exec(str_sql);
+    int today_words = 0;
+    while(sqlQuery.next())
+    {
+        today_words = sqlQuery.value(0).toInt();
+        qDebug() << "今日tips单词" << today_words;
     }
 
 
-    //获取需要纳入当天记忆的单词列表
-//    QList<int> *word_index_list = new QList<int>();
-//    QDateTime cdt =QDateTime::currentDateTime();
-//    QString current_date =cdt.toString("yyyy-MM-dd");
-//    str_sql = "select count(*) from words where tips = '" + current_date+ "'";
-//    sqlQuery.exec(str_sql);
-//    int todayWordsNumber;
-//    while(sqlQuery.next())
-//    {
-//       todayWordsNumber = sqlQuery.value(0).toInt();
-//    }
+    if(today_words < daily_words_number)
+    {
+        //今日单词数不够，还需要加。
+        str_sql = "select * from words where tips = '' and rememberType = '0' limit " +  QString::number(daily_words_number-today_words);
+        sqlQuery.exec(str_sql);
+        while(sqlQuery.next())
+        {
+            QSqlQuery sqlQuery2;
+            QString str_sql2 = "update words set tips = '"+ current_date + "' where id = " + QString::number(sqlQuery.value(0).toInt());
+            sqlQuery2.exec(str_sql2);
+        }
+    }
+    else if(today_words > daily_words_number) //需要去除一些单词
+    {
+        int number_to_minus = today_words - daily_words_number;
+        str_sql = "select count(*) from words where tips = '"+ current_date + "' and rememberType = '0'";
+        sqlQuery.exec(str_sql);
+        int today_not_start_number = 0;
+        while(sqlQuery.next())
+        {
+            today_not_start_number = sqlQuery.value(0).toInt();
+        }
+        if(today_not_start_number >= number_to_minus)
+        {
+            //将多余标记为0的单词的tips标记为空。
+            str_sql = "update words set tips = '' where id in (select id from words where tips = '"+ current_date + "' and rememberType = '0' limit "+ QString::number(number_to_minus)+")";
+            sqlQuery.exec(str_sql);
+        }
+    }
+
+    //当天记忆度为0.5和1的都不展示
+    str_sql = "select * from words where tips = '"+ current_date + "' and rememberType = '0'";
+    sqlQuery.exec(str_sql);
+    while(sqlQuery.next())
+    {
+        word_index_list->append(sqlQuery.value(0).toInt());
+    }
 
 
-    database.close();
+
     QSqlTableModel *model_;    //数据库模型
     model_=new QSqlTableModel; //负责提取数据
     model_->setTable("words");//选择要输出的表名称
-    model_->setEditStrategy(QSqlTableModel::OnFieldChange); //所有改变立即运用到数据库
+    if("true" == table1_config_ifSaveAfterChanging )
+    {
+        model_->setEditStrategy(QSqlTableModel::OnFieldChange); //所有改变立即运用到数据库
+    }
+    else
+    {
+        //所有改变都会在模型中缓存，直到调用submitAll()或revertAll()函数
+        model_->setEditStrategy(QSqlTableModel::OnManualSubmit);
+    }
     if(model_->select())
     {
         qDebug()<<"model设置成功";
@@ -123,28 +173,34 @@ MainWindow::MainWindow(QWidget *parent)
         emit table1config->initConfig();
         table1config->show();
         connect(table1config,&Table1Config::configOfTable1Changed,this,[=](bool ifSaveAfterChanging){
+            QString flagString = "false";
             if(ifSaveAfterChanging)
             {
                 //所有改变立即运用到数据库
                 model_->setEditStrategy(QSqlTableModel::OnFieldChange);
+                flagString = "true";
             }
             else
             {
                 //所有改变都会在模型中缓存，直到调用submitAll()或revertAll()函数
                 model_->setEditStrategy(QSqlTableModel::OnManualSubmit);
             }
+            QSqlQuery sqlQuery;
+            QString str_sql = "update config set table1_config_ifSaveAfterChanging = '"+ flagString +"' where id = 1";
+            sqlQuery.exec(str_sql);
         });
     });
+
     QGridLayout *pLayout = new QGridLayout();//网格布局
     pLayout->setColumnStretch(this->width()/600, 1);
     pLayout->setSpacing(14);
     QList<QPushButton*> *pBtnList = new QList<QPushButton*>();
-    int buttonNum =daily_words_number.toInt();
-    for(int i = 0; i < buttonNum; i++)
+    for(int i = 0; i < word_index_list->size(); i++)
     {
         QPushButton *pBtn = new QPushButton();
         pBtnList->append(pBtn);
-        pBtn->setText(model_->record(i).value(1).value<QString>());
+        // record(row) ，row最小为0，等于id -1。
+        pBtn->setText(QString::number(i+1) +" " + model_->record(word_index_list->at(i)-1).value(1).value<QString>());
         pBtn->setFixedSize(QSize(300,30));
         pLayout->addWidget(pBtn);//把按钮添加到布局控件中
     }
@@ -173,43 +229,30 @@ MainWindow::MainWindow(QWidget *parent)
             if(filePath != "")
             {
                 QVector< QVector<QString> > cellValues = this->read_data_from_xlsx(filePath);
-                QSqlDatabase database = this->connect_database();
                 //先清空words表
                 QSqlQuery sqlQuery;
-                QString str_sql = "DELETE FROM words;";
+                QString str_sql = "DELETE FROM words";
                 sqlQuery.exec(str_sql);
-                str_sql = "update sqlite_sequence set seq=0 where name='words'";
-                sqlQuery.exec(str_sql);
-
-                for(int i = 0; i < cellValues.size(); i++)
+                for(int i = 1; i < cellValues.size(); i++)
                 {
-                    str_sql = "insert into words values("+QString::number(i,10)+",";
-                    for(int j = 0; j < cellValues[i].size(); j++)
+                    str_sql = "INSERT INTO words VALUES ("+QString::number(i)+",";
+                    for (int j = 0; j < cellValues[i].size(); j++)
                     {
-                        str_sql += "'"+cellValues[i][j]+"',";
+                        str_sql += "?,";
                     }
                     str_sql.chop(1);
                     str_sql += ")";
-                    if(!sqlQuery.exec(str_sql))
+                    sqlQuery.prepare(str_sql);
+                    for (int j = 0; j < cellValues[i].size(); j++)
+                    {
+                        sqlQuery.addBindValue(cellValues[i][j]);
+                    }
+                    if(!sqlQuery.exec())
                     {
                         qDebug()<<"插入第"<< i+1 <<"行数据失败"<<str_sql;
                     }
                 }
-                database.close();
-
-                QSqlTableModel *model_;    //数据库模型
-                model_=new QSqlTableModel; //负责提取数据
-                model_->setTable("words");//选择要输出的表名称
-                if(model_->select())
-                {
-                    qDebug()<<"model设置成功";
-                }
-                else
-                {
-                    qDebug()<<"model设置失败";
-                }
-                ui->tableView->setModel(model_);
-
+                model_->select();
             }
         }
     });
@@ -242,6 +285,7 @@ bool MainWindow::eventFilter(QObject *obj,QEvent *ev)
 QSqlDatabase MainWindow::connect_database()
 {
     QSqlDatabase database;
+    //若存在连接，直接返回原来的连接，故不会同时存在大量连接，本程序第一次连接后也就一直没有必要调用close()。
     if (QSqlDatabase::contains("qt_sql_default_connection"))
     {
         database = QSqlDatabase::database("qt_sql_default_connection");
@@ -291,8 +335,6 @@ QVector< QVector<QString> > MainWindow::read_data_from_xlsx(QString filePath)
             Worksheet* wsheet = (Worksheet*) currentSheet->workbook()->activeSheet();
             if ( NULL == wsheet )
                 continue;
-
-            QString strSheetName = wsheet->sheetName(); // sheet name
 
             QVector<CellLocation> clList = wsheet->getFullCells( &maxRow, &maxCol );
 
