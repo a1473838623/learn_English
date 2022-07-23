@@ -8,7 +8,7 @@ Table1Config::Table1Config(QWidget *parent) :
     ui->setupUi(this);
     this->setWindowTitle("Table1设置");
     ui->checkBox->setText("编辑后是否保存至数据库");
-    connect(this,&Table1Config::initConfig,this,[=](){
+    connect(this,&Table1Config::readConfig,this,[=](){
         if(this->ifSaveAfterChanging)
         {
             ui->checkBox->setCheckState(Qt::Checked);
@@ -19,8 +19,8 @@ Table1Config::Table1Config(QWidget *parent) :
         }
     });
     connect(ui->buttonBox,&QDialogButtonBox::accepted,this,[=](){
-        emit this->configOfTable1Changed(ui->checkBox->isChecked());
         this->ifSaveAfterChanging = ui->checkBox->isChecked();
+        emit this->configOfTable1Changed(ui->checkBox->isChecked());
         this->close();
     });
     connect(ui->buttonBox,&QDialogButtonBox::rejected,this,[=](){
@@ -33,7 +33,7 @@ Table1Config::~Table1Config()
     delete ui;
 }
 
-void Table1Config::setIfSaveAfterChanging(bool flag)
+void Table1Config::setIfSaveAfterChanging(bool ifSaveAfterChanging)
 {
-    this->ifSaveAfterChanging = flag;
+    this->ifSaveAfterChanging = ifSaveAfterChanging;
 }

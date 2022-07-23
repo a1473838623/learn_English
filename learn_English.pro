@@ -1,4 +1,4 @@
-QT       += core gui sql
+QT       += core gui sql texttospeech
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -11,15 +11,18 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    table1config.cpp
+    table1config.cpp \
+    table2config.cpp
 
 HEADERS += \
     mainwindow.h \
-    table1config.h
+    table1config.h \
+    table2config.h
 
 FORMS += \
     mainwindow.ui \
-    table1config.ui
+    table1config.ui \
+    table2config.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

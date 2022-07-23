@@ -14,10 +14,10 @@ class Table1Config : public QWidget
 public:
     explicit Table1Config(QWidget *parent = nullptr);
     ~Table1Config();
-    void setIfSaveAfterChanging(bool flag);
+    void setIfSaveAfterChanging(bool);
 signals:
     void configOfTable1Changed(bool ifSaveAfterChanging);
-    void initConfig();
+    void readConfig();
 private:
     Ui::Table1Config *ui;
     bool ifSaveAfterChanging;

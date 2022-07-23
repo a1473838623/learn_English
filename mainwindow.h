@@ -4,12 +4,13 @@
 #include <QMainWindow>
 #include <QSqlDatabase>
 #include <table1config.h>
+#include <table2config.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-//帮助文档路径C:\Qt\6.2.4\mingw_64\bin\assistant.exe
+//帮助文档路径C:\Qt\5.15.2\mingw81_64\bin\assistant.exe
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -30,6 +31,7 @@ signals:
 private:
     Ui::MainWindow *ui;
     Table1Config *table1config;
+    Table2Config *table2config;
 
 };
 #endif // MAINWINDOW_H
