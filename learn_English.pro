@@ -37,3 +37,6 @@ QXLSX_PARENTPATH=./QXlsx    # current QXlsx path is ./QXlsx (. means curret dire
 QXLSX_HEADERPATH=./QXlsx/header/  # current QXlsx header path is ./QXlsx/header/
 QXLSX_SOURCEPATH=./QXlsx/source/  # current QXlsx source path is ./QXlsx/source/
 include(./QXlsx/QXlsx.pri)
+
+DISTFILES += \
+    readme.md
