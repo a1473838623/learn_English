@@ -75,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
     sqlQuery.exec(str_sql);
     str_sql = "create table if not exists config(id int primary key, cycle_period text, daily_words_number text, table1_config_ifSaveAfterChanging text, table2_config_localeLanguageName text,table2_config_voiceType text, table2_config_voiceRate text, table2_config_voicePitch text, table2_config_voiceVolume text)";
     sqlQuery.exec(str_sql);
-    str_sql = "insert into config values(1,'14','50','true','en_UK','Halen','0.5','0.5','0.5')";
+    str_sql = "insert into config values(1,'14','50','true','en_UK','Microsoft Hazel Desktop','0.0','0.0','1.0')";
     sqlQuery.exec(str_sql);
     str_sql = "select * from config where id = 1";
     sqlQuery.exec(str_sql);
@@ -197,6 +197,9 @@ MainWindow::MainWindow(QWidget *parent)
     }
     model_->select();
     ui->tableView->setModel(model_);
+    connect(ui->pushButton,&QPushButton::clicked,this,[=](){
+        model_->select();
+    });
 
     QMenu *fileMenu = ui->menubar->addMenu("文件");
     QMenu *configMenu = ui->menubar->addMenu("设置");
@@ -294,6 +297,7 @@ MainWindow::MainWindow(QWidget *parent)
         });
     });
 
+    this->wordWidget = new WordWidget();
     QGridLayout *pLayout = new QGridLayout();//网格布局
     pLayout->setColumnStretch(this->width()/600, 1);
     pLayout->setSpacing(14);
@@ -308,8 +312,23 @@ MainWindow::MainWindow(QWidget *parent)
         pBtn->setFixedSize(QSize(300,30));
         pLayout->addWidget(pBtn);//把按钮添加到布局控件中
 
+        int wordId = word_index_list->at(i);
+        QString meaning = model_->record(word_index_list->at(i)-1).value(4).value<QString>();
+        QString voice_UK = model_->record(word_index_list->at(i)-1).value(2).value<QString>();
+        QString voice_US = model_->record(word_index_list->at(i)-1).value(3).value<QString>();
+        QString word_rememberType = model_->record(word_index_list->at(i)-1).value(5).value<QString>();
+
         connect(pBtn,&QPushButton::clicked,this,[=](){
             tts->say(word);
+            this->wordWidget->show();
+            this->wordWidget->setWordId(wordId);
+            this->wordWidget->setWordName(word);
+            this->wordWidget->setWordMeaning(meaning);
+            this->wordWidget->setWordVoice_UK(voice_UK);
+            this->wordWidget->setWordVoice_US(voice_US);
+            this->wordWidget->setWordRememberType(word_rememberType);
+            emit this->wordWidget->wordChanged();
+
         });
     }
     ui->scrollArea->widget()->setLayout(pLayout);//把布局放置到QScrollArea的内部QWidget中
@@ -330,7 +349,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     QAction *importAction = fileMenu->addAction("导入");
     connect(importAction,&QAction::triggered,this,[=](){
-        bool ifConfirmed = QMessageBox::information(this,"请耐心阅读以下提示","待导入的excel需要严格按照以下规则排列。");
+        bool ifConfirmed = QMessageBox::information(this,"请耐心阅读以下提示","待导入的excel需要严格按照helpme.txt中描述的规则排列。");
         if(ifConfirmed)
         {
             QString filePath = QFileDialog::getOpenFileName(this);

@@ -12,17 +12,20 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     table1config.cpp \
-    table2config.cpp
+    table2config.cpp \
+    wordwidget.cpp
 
 HEADERS += \
     mainwindow.h \
     table1config.h \
-    table2config.h
+    table2config.h \
+    wordwidget.h
 
 FORMS += \
     mainwindow.ui \
     table1config.ui \
-    table2config.ui
+    table2config.ui \
+    wordwidget.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

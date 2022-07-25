@@ -5,6 +5,7 @@
 #include <QSqlDatabase>
 #include <table1config.h>
 #include <table2config.h>
+#include <wordwidget.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -32,6 +33,7 @@ private:
     Ui::MainWindow *ui;
     Table1Config *table1config;
     Table2Config *table2config;
+    WordWidget *wordWidget;
 
 };
 #endif // MAINWINDOW_H
